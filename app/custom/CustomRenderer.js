@@ -1,4 +1,4 @@
-import BaseRenderer from '../modules/diagram-js/lib/draw/BaseRenderer';
+import BaseRenderer from '../../node_modules/diagram-js/lib/draw/BaseRenderer';
 
 import {
   append as svgAppend,
@@ -39,9 +39,43 @@ export default class CustomRenderer extends BaseRenderer {
   }
 
   drawShape(parentNode, element) {
+    if (element.type === 'bpmn:Task') {
+      element.height = 36;
+      element.width = 120;
+    }
     const shape = this.bpmnRenderer.drawShape(parentNode, element);
+    console.log(element);
+
+    const skill = this.getSkillType(element);
+
+    if (!!skill) {
+      const {back, border} = this.getSkillColor(skill);
+      svgAttr(shape, {
+        stroke: border,
+        fill: back,
+        rx: 4,
+        ry: 4,
+      });
+
+      var text = svgCreate('text'); 
+
+      svgAttr(text, {
+        fill: border,
+        transform: 'translate(25, 23)'
+      });
+
+      svgClasses(text).add('djs-label'); 
+    
+      svgAppend(text, document.createTextNode(skill.replace(/^\w/, c => c.toUpperCase()))); 
+    
+      svgAppend(parentNode, text);
+    
+
+      return shape;
+    }
 
     const suitabilityScore = this.getSuitabilityScore(element);
+
 
     if (!isNil(suitabilityScore)) {
       const color = this.getColor(suitabilityScore);
@@ -85,6 +119,12 @@ export default class CustomRenderer extends BaseRenderer {
     return Number.isFinite(suitable) ? suitable : null;
   }
 
+  getSkillType(element) {
+    const businessObject = getBusinessObject(element);
+    const { skill } = businessObject;
+    return skill;
+  }
+
   getColor(suitabilityScore) {
     if (suitabilityScore > 75) {
       return COLOR_GREEN;
@@ -94,6 +134,19 @@ export default class CustomRenderer extends BaseRenderer {
 
     return COLOR_RED;
   }
+
+  getSkillColor(skill) {
+    switch (skill) {
+      case 'document':
+        return {back: 'rgba(51, 12, 156, 0.2)', border: 'rgb(51, 12, 156)'};
+      case 'classification':
+        return {back: 'rgba(216, 116, 22, 0.2)', border: 'rgb(216, 116, 22)'};
+      case 'processing':
+        return {back: 'rgba(23, 189, 153, 0.2)', border: 'rgb(23, 189, 153)'};
+      default:
+        return {back: 'rgba(117, 117, 117, 0.2)', border: 'rgb(117, 117, 117)'};
+    }
+  }
 }
 
 CustomRenderer.$inject = [ 'eventBus', 'bpmnRenderer' ];
@@ -101,7 +154,7 @@ CustomRenderer.$inject = [ 'eventBus', 'bpmnRenderer' ];
 // helpers //////////
 
 // copied from https://github.com/bpmn-io/bpmn-js/blob/master/lib/draw/BpmnRenderer.js
-function drawRect(parentNode, width, height, borderRadius, color) {
+function drawRect(parentNode, width, height, borderRadius, color, stroke) {
   const rect = svgCreate('rect');
 
   svgAttr(rect, {
@@ -109,7 +162,7 @@ function drawRect(parentNode, width, height, borderRadius, color) {
     height: height,
     rx: borderRadius,
     ry: borderRadius,
-    stroke: color,
+    stroke: stroke || color,
     strokeWidth: 2,
     fill: color
   });

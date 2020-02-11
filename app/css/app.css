@@ -22,7 +22,9 @@ html, body, #container {
 }
 
 .djs-label {
-  font-family: 'Arial', sans-serif;
+  font-family: 'Roboto', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
 }
 .djs-palette-entries {
   display: flex;
@@ -175,6 +177,19 @@ html, body, #container {
   height: 32px;
   width: 32px;
   border-radius: 4px;
+}
+.context-remove {
+  border: none;
+  color: black;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+}
+.context-remove svg {
+  height: 16px;
+  width: 16px;
 }
 
 .context-output {

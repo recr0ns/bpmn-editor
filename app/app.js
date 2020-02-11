@@ -14,6 +14,17 @@ const bpmnModeler = new BpmnModeler({
   ]
 });
 
+
+const button = document.createElement('button');
+button.innerHTML = "Do Something";
+button.addEventListener('click', () => {
+  bpmnModeler.saveXML({ format: true }, function (err, xml) {
+    console.log(xml);
+    // here xml is the bpmn format 
+  });
+});
+
+document.getElementsByTagName("body")[0].appendChild(button);
 // import XML
 bpmnModeler.importXML(diagramXML, (err) => {
   if (err) {
