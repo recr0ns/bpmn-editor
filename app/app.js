@@ -1,6 +1,6 @@
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 
-import customRendererModule from './custom';
+import customControlsModule from './custom';
 
 import diagramXML from '../resources/diagram.bpmn';
 
@@ -10,7 +10,7 @@ const containerEl = document.getElementById('container');
 const bpmnModeler = new BpmnModeler({
   container: containerEl,
   additionalModules: [
-    customRendererModule
+    customControlsModule
   ]
 });
 

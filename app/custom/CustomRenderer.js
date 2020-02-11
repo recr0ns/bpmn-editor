@@ -1,22 +1,28 @@
-import BaseRenderer from 'diagram-js/lib/draw/BaseRenderer';
+import BaseRenderer from '../modules/diagram-js/lib/draw/BaseRenderer';
 
 import {
   append as svgAppend,
   attr as svgAttr,
   classes as svgClasses,
-  create as svgCreate,
-  remove as svgRemove
+  create as svgCreate
 } from 'tiny-svg';
 
 import {
   getRoundRectPath
 } from 'bpmn-js/lib/draw/BpmnRenderUtil';
 
-import { is } from 'bpmn-js/lib/util/ModelUtil';
-import { isAny } from 'bpmn-js/lib/features/modeling/util/ModelingUtil';
+import {
+  is,
+  getBusinessObject
+} from 'bpmn-js/lib/util/ModelUtil';
+
+import { isNil } from 'min-dash';
 
 const HIGH_PRIORITY = 1500,
-      TASK_BORDER_RADIUS = 2;
+      TASK_BORDER_RADIUS = 2,
+      COLOR_GREEN = '#52B415',
+      COLOR_YELLOW = '#ffc800',
+      COLOR_RED = '#cc0000';
 
 
 export default class CustomRenderer extends BaseRenderer {
@@ -28,28 +34,37 @@ export default class CustomRenderer extends BaseRenderer {
 
   canRender(element) {
 
-    // only render tasks and events (ignore labels)
-    return isAny(element, [ 'bpmn:Task', 'bpmn:Event' ]) && !element.labelTarget;
+    // ignore labels
+    return !element.labelTarget;
   }
 
   drawShape(parentNode, element) {
     const shape = this.bpmnRenderer.drawShape(parentNode, element);
 
-    if (is(element, 'bpmn:Task')) {
-      const rect = drawRect(parentNode, 100, 80, TASK_BORDER_RADIUS, '#52B415');
+    const suitabilityScore = this.getSuitabilityScore(element);
 
-      prependTo(rect, parentNode);
+    if (!isNil(suitabilityScore)) {
+      const color = this.getColor(suitabilityScore);
 
-      svgRemove(shape);
+      const rect = drawRect(parentNode, 50, 20, TASK_BORDER_RADIUS, color);
+  
+      svgAttr(rect, {
+        transform: 'translate(-20, -10)'
+      });
 
-      return shape;
+      var text = svgCreate('text'); 
+
+      svgAttr(text, {
+        fill: '#fff',
+        transform: 'translate(-15, 5)'
+      });
+
+      svgClasses(text).add('djs-label'); 
+    
+      svgAppend(text, document.createTextNode(suitabilityScore)); 
+    
+      svgAppend(parentNode, text);
     }
-
-    const rect = drawRect(parentNode, 30, 20, TASK_BORDER_RADIUS, '#cc0000');
-
-    svgAttr(rect, {
-      transform: 'translate(-20, -10)'
-    });
 
     return shape;
   }
@@ -61,6 +76,24 @@ export default class CustomRenderer extends BaseRenderer {
 
     return this.bpmnRenderer.getShapePath(shape);
   }
+
+  getSuitabilityScore(element) {
+    const businessObject = getBusinessObject(element);
+  
+    const { suitable } = businessObject;
+
+    return Number.isFinite(suitable) ? suitable : null;
+  }
+
+  getColor(suitabilityScore) {
+    if (suitabilityScore > 75) {
+      return COLOR_GREEN;
+    } else if (suitabilityScore > 25) {
+      return COLOR_YELLOW;
+    }
+
+    return COLOR_RED;
+  }
 }
 
 CustomRenderer.$inject = [ 'eventBus', 'bpmnRenderer' ];
@@ -68,7 +101,7 @@ CustomRenderer.$inject = [ 'eventBus', 'bpmnRenderer' ];
 // helpers //////////
 
 // copied from https://github.com/bpmn-io/bpmn-js/blob/master/lib/draw/BpmnRenderer.js
-function drawRect(parentNode, width, height, borderRadius, strokeColor) {
+function drawRect(parentNode, width, height, borderRadius, color) {
   const rect = svgCreate('rect');
 
   svgAttr(rect, {
@@ -76,17 +109,12 @@ function drawRect(parentNode, width, height, borderRadius, strokeColor) {
     height: height,
     rx: borderRadius,
     ry: borderRadius,
-    stroke: strokeColor || '#000',
+    stroke: color,
     strokeWidth: 2,
-    fill: '#fff'
+    fill: color
   });
 
   svgAppend(parentNode, rect);
 
   return rect;
-}
-
-// copied from https://github.com/bpmn-io/diagram-js/blob/master/lib/core/GraphicsFactory.js
-function prependTo(newNode, parentNode, siblingNode) {
-  parentNode.insertBefore(newNode, siblingNode || parentNode.firstChild);
 }
